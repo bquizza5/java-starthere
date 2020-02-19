@@ -6,36 +6,48 @@ import com.lambdaschool.starthere.models.User;
 import com.lambdaschool.starthere.models.UserRoles;
 import com.lambdaschool.starthere.models.Useremail;
 import com.lambdaschool.starthere.services.UserService;
+import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // mocking service to test controller
 
 @RunWith(SpringRunner.class)
-@WebMvcTest(value = UserController.class, secure = false)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+@WithMockUser(username="admin",roles={"USER","ADMIN"})
 public class UserControllerUnitTest
 {
     @Autowired
+    private WebApplicationContext webApplicationContext;
+
     private MockMvc mockMvc;
 
     @MockBean
@@ -60,7 +72,7 @@ public class UserControllerUnitTest
         admins.add(new UserRoles(new User(), r1));
         admins.add(new UserRoles(new User(), r2));
         admins.add(new UserRoles(new User(), r3));
-        User u1 = new User("admin", "ILuvM4th!", admins);
+        User u1 = new User("admin", "ILuvM4th!", "admin@lambdaschool.local", admins);
 
         u1.getUseremails()
           .add(new Useremail(u1, "admin@email.local"));
@@ -77,7 +89,7 @@ public class UserControllerUnitTest
         ArrayList<UserRoles> datas = new ArrayList<>();
         datas.add(new UserRoles(new User(), r3));
         datas.add(new UserRoles(new User(), r2));
-        User u2 = new User("cinnamon", "1234567", datas);
+        User u2 = new User("cinnamon", "1234567", "cinnamon@lambdaschool.local", datas);
 
         u2.getUseremails()
           .add(new Useremail(u2, "cinnamon@mymail.local"));
@@ -97,7 +109,7 @@ public class UserControllerUnitTest
         // user
         ArrayList<UserRoles> users = new ArrayList<>();
         users.add(new UserRoles(new User(), r1));
-        User u3 = new User("testingbarn", "ILuvM4th!", users);
+        User u3 = new User("testingbarn", "ILuvM4th!", "testingbarn@school.lambda", users);
 
         u3.getUseremails()
           .add(new Useremail(u3, "barnbarn@email.local"));
@@ -108,13 +120,13 @@ public class UserControllerUnitTest
 
         users = new ArrayList<>();
         users.add(new UserRoles(new User(), r2));
-        User u4 = new User("testingcat", "password", users);
+        User u4 = new User("testingcat", "password", "testingcat@school.lambda", users);
         u4.setUserid(104);
         userList.add(u4);
 
         users = new ArrayList<>();
         users.add(new UserRoles(new User(), r2));
-        User u5 = new User("testingdog", "password", users);
+        User u5 = new User("testingdog", "password", "testingdog@school.lambda", users);
         u5.setUserid(105);
         userList.add(u5);
 
@@ -124,6 +136,12 @@ public class UserControllerUnitTest
             System.out.println(u);
         }
         System.out.println("*** Seed Data ***\n");
+
+        RestAssuredMockMvc.webAppContextSetup(webApplicationContext);
+
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                                 .apply(SecurityMockMvcConfigurers.springSecurity())
+                                 .build();
     }
 
     @After
@@ -136,7 +154,51 @@ public class UserControllerUnitTest
     {
         String apiUrl = "/users/users";
 
-        Mockito.when(userService.findAll()).thenReturn(userList);
+        Mockito.when(userService.findAll(any(Pageable.class))).thenReturn(userList);
+
+        RequestBuilder rb = MockMvcRequestBuilders.get(apiUrl).accept(MediaType.APPLICATION_JSON);
+
+        // the following actually performs a real controller call
+        MvcResult r = mockMvc.perform(rb).andReturn(); // this could throw an exception
+        String tr = r.getResponse().getContentAsString();
+
+        ObjectMapper mapper = new ObjectMapper();
+        String er = mapper.writeValueAsString(userList);
+
+        System.out.println("Expect: " + er);
+        System.out.println("Actual: " + tr);
+
+        assertEquals("Rest API Returns List", er, tr);
+    }
+
+    @Test
+    public void listReallyAllUsers() throws Exception
+    {
+        String apiUrl = "/users/users/all";
+
+        Mockito.when(userService.findAll(Pageable.unpaged())).thenReturn(userList);
+
+        RequestBuilder rb = MockMvcRequestBuilders.get(apiUrl).accept(MediaType.APPLICATION_JSON);
+
+        // the following actually performs a real controller call
+        MvcResult r = mockMvc.perform(rb).andReturn(); // this could throw an exception
+        String tr = r.getResponse().getContentAsString();
+
+        ObjectMapper mapper = new ObjectMapper();
+        String er = mapper.writeValueAsString(userList);
+
+        System.out.println("Expect: " + er);
+        System.out.println("Actual: " + tr);
+
+        assertEquals("Rest API Returns List", er, tr);
+    }
+
+    @Test
+    public void listUsersNameContaining() throws Exception
+    {
+        String apiUrl = "/users/user/name/like/cin";
+
+        Mockito.when(userService.findByNameContaining(any(String.class), any(Pageable.class))).thenReturn(userList);
 
         RequestBuilder rb = MockMvcRequestBuilders.get(apiUrl).accept(MediaType.APPLICATION_JSON);
 
@@ -215,8 +277,38 @@ public class UserControllerUnitTest
     @Test
     public void getCurrentUserName() throws Exception
     {
-        // requires security which we have turned off for unit test
-        // refer to integration testing for test of this method
+        String apiUrl = "/users/getusername";
+
+        RequestBuilder rb = MockMvcRequestBuilders.get(apiUrl).accept(MediaType.APPLICATION_JSON);
+        MvcResult r = mockMvc.perform(rb).andReturn(); // this could throw an exception
+        String tr = r.getResponse().getContentAsString();
+
+        String er = "{\"password\":\"password\",\"username\":\"admin\",\"authorities\":[{\"authority\":\"ROLE_ADMIN\"},{\"authority\":\"ROLE_USER\"}],\"accountNonExpired\":true,\"accountNonLocked\":true,\"credentialsNonExpired\":true,\"enabled\":true}";
+
+        System.out.println("Expect: " + er);
+        System.out.println("Actual: " + tr);
+
+        assertEquals("Rest API Returns List", er, tr);
+    }
+
+    @Test
+    public void getUserInfo() throws Exception
+    {
+        String apiUrl = "/users/getuserinfo";
+
+        Mockito.when(userService.findByName(anyString())).thenReturn(userList.get(0));
+
+        RequestBuilder rb = MockMvcRequestBuilders.get(apiUrl).accept(MediaType.APPLICATION_JSON);
+        MvcResult r = mockMvc.perform(rb).andReturn(); // this could throw an exception
+        String tr = r.getResponse().getContentAsString();
+
+        ObjectMapper mapper = new ObjectMapper();
+        String er = mapper.writeValueAsString(userList.get(0));
+
+        System.out.println("Expect: " + er);
+        System.out.println("Actual: " + tr);
+
+        assertEquals("Rest API Returns List", er, tr);
     }
 
     @Test
@@ -224,13 +316,14 @@ public class UserControllerUnitTest
     {
         String apiUrl = "/users/user";
 
-        // build a restaurant
+        // build a user
         ArrayList<UserRoles> thisRole = new ArrayList<>();
         ArrayList<Useremail> thisEmail = new ArrayList<>();
         User u1 = new User();
         u1.setUserid(100);
         u1.setUsername("tiger");
         u1.setPassword("ILuvM4th!");
+        u1.setPrimaryemail("tiger@home.local");
         u1.setUserroles(thisRole);
         u1.setUseremails(thisEmail);
 
@@ -251,15 +344,14 @@ public class UserControllerUnitTest
     {
         String apiUrl = "/users/user/{userid}";
 
-        // build a restaurant
-        ArrayList<UserRoles> thisRole = new ArrayList<>();
-        ArrayList<Useremail> thisEmail = new ArrayList<>();
+        // build a user
         User u1 = new User();
         u1.setUserid(100);
         u1.setUsername("tigerUpdated");
+        u1.setPrimaryemail("home@local.home");
         u1.setPassword("ILuvM4th!");
 
-        Mockito.when(userService.update(u1, 100L, true)).thenReturn(u1);
+        Mockito.when(userService.update(u1, 100L, true)).thenReturn(userList.get(0));
 
         ObjectMapper mapper = new ObjectMapper();
         String userString = mapper.writeValueAsString(u1);
@@ -289,9 +381,8 @@ public class UserControllerUnitTest
     {
         String apiUrl = "/users/user/{userid}/role/{roleid}";
 
-        RequestBuilder rb = MockMvcRequestBuilders.delete(apiUrl, 3, 2)
-                                                  .contentType(MediaType.APPLICATION_JSON)
-                                                  .accept(MediaType.APPLICATION_JSON);
+        RequestBuilder rb = MockMvcRequestBuilders.delete(apiUrl, 3, 2);
+
         mockMvc.perform(rb)
                .andExpect(status().is2xxSuccessful())
                .andDo(MockMvcResultHandlers.print());
@@ -300,7 +391,14 @@ public class UserControllerUnitTest
     // @PostMapping("/user/{userid}/role/{roleid}")
     // userService.addUserRole(userid, roleid);
     @Test
-    public void postUserRoleByIds()
+    public void postUserRoleByIds() throws Exception
     {
+        String apiUrl = "/users/user/{userid}/role/{roleid}";
+
+        RequestBuilder rb = MockMvcRequestBuilders.post(apiUrl, 3, 2);
+
+        mockMvc.perform(rb)
+               .andExpect(status().is2xxSuccessful())
+               .andDo(MockMvcResultHandlers.print());
     }
 }

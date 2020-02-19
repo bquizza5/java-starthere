@@ -1,12 +1,15 @@
 package com.lambdaschool.starthere.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.lambdaschool.starthere.logging.Loggable;
 
 import javax.persistence.*;
 import javax.validation.constraints.Email;
 
+@Loggable
 @Entity
-@Table(name = "useremails")
+@Table(name = "useremails",
+       uniqueConstraints = {@UniqueConstraint(columnNames = {"userid", "useremail"})})
 public class Useremail extends Auditable
 {
     @Id
@@ -27,7 +30,8 @@ public class Useremail extends Auditable
     {
     }
 
-    public Useremail(User user, String useremail)
+    public Useremail(User user,
+                     String useremail)
     {
         this.useremail = useremail;
         this.user = user;
@@ -45,12 +49,18 @@ public class Useremail extends Auditable
 
     public String getUseremail()
     {
-        return useremail;
+        if (useremail == null) // this is possible when updating a user
+        {
+            return null;
+        } else
+        {
+            return useremail.toLowerCase();
+        }
     }
 
     public void setUseremail(String useremail)
     {
-        this.useremail = useremail;
+        this.useremail = useremail.toLowerCase();
     }
 
     public User getUser()

@@ -1,11 +1,13 @@
 package com.lambdaschool.starthere.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.lambdaschool.starthere.logging.Loggable;
 
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
+@Loggable
 @Entity
 @Table(name = "roles")
 public class Role extends Auditable
@@ -29,7 +31,7 @@ public class Role extends Auditable
 
     public Role(String name)
     {
-        this.name = name;
+        this.name = name.toUpperCase();
     }
 
     public long getRoleid()
@@ -44,12 +46,18 @@ public class Role extends Auditable
 
     public String getName()
     {
-        return name;
+        if (name == null)
+        {
+            return null;
+        } else
+        {
+            return name.toUpperCase();
+        }
     }
 
     public void setName(String name)
     {
-        this.name = name;
+        this.name = name.toUpperCase();
     }
 
     public List<UserRoles> getUserroles()

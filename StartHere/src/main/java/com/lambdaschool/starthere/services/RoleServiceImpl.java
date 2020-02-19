@@ -1,6 +1,8 @@
 package com.lambdaschool.starthere.services;
 
+import com.lambdaschool.starthere.exceptions.ResourceFoundException;
 import com.lambdaschool.starthere.exceptions.ResourceNotFoundException;
+import com.lambdaschool.starthere.logging.Loggable;
 import com.lambdaschool.starthere.models.Role;
 import com.lambdaschool.starthere.models.User;
 import com.lambdaschool.starthere.models.UserRoles;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+@Loggable
 @Service(value = "roleService")
 public class RoleServiceImpl implements RoleService
 {
@@ -66,21 +69,38 @@ public class RoleServiceImpl implements RoleService
 
     @Transactional
     @Override
+    public Role update(long id, Role role)
+    {
+        if (role.getName() == null)
+        {
+            throw new ResourceNotFoundException("No role name found to update!");
+        }
+
+        if (role.getUserroles()
+                .size() > 0)
+        {
+            throw new ResourceFoundException("User Roles are not updated through Role. See endpoint POST: users/user/{userid}/role/{roleid}");
+        }
+
+        Role newRole = findRoleById(id); // see if id exists
+
+        rolerepos.updateRoleName(id, role.getName());
+        return findRoleById(id);
+    }
+
+
+
+    @Transactional
+    @Override
     public Role save(Role role)
     {
         Role newRole = new Role();
         newRole.setName(role.getName());
-
-        ArrayList<UserRoles> newUsers = new ArrayList<>();
-        for (UserRoles ur : role.getUserroles())
+        if (role.getUserroles()
+                .size() > 0)
         {
-            long id = ur.getUser()
-                        .getUserid();
-            User user = userrepos.findById(id)
-                                 .orElseThrow(() -> new ResourceNotFoundException("User id " + id + " not found!"));
-            newUsers.add(new UserRoles(ur.getUser(), newRole));
+            throw new ResourceFoundException("User Roles are not updated through Role. See endpoint POST: users/user/{userid}/role/{roleid}");
         }
-        newRole.setUserroles(newUsers);
 
         return rolerepos.save(role);
     }

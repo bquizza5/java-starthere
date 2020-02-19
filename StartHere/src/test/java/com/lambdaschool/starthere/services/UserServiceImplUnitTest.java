@@ -16,6 +16,7 @@ import org.junit.runners.MethodSorters;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -49,19 +50,6 @@ public class UserServiceImplUnitTest
     }
 
     @Test
-    public void A_loadUserByUsername()
-    {
-        assertEquals("admin", userService.loadUserByUsername("admin").getUsername());
-    }
-
-    @Test (expected = UsernameNotFoundException.class)
-    public void AA_loadUserByUsernameNotfound()
-    {
-        assertEquals("admin", userService.loadUserByUsername("turtle").getUsername());
-    }
-
-
-    @Test
     public void B_findUserById()
     {
         assertEquals("admin", userService.findUserById(4).getUsername());
@@ -76,21 +64,21 @@ public class UserServiceImplUnitTest
     @Test
     public void C_findAll()
     {
-        assertEquals(5, userService.findAll().size());
+        assertEquals(5, userService.findAll(Pageable.unpaged()).size());
     }
 
     @Test
     public void D_delete()
     {
         userService.delete(13);
-        assertEquals(4, userService.findAll().size());
+        assertEquals(4, userService.findAll(Pageable.unpaged()).size());
     }
 
     @Test(expected = ResourceNotFoundException.class)
     public void DA_notFoundDelete()
     {
         userService.delete(100);
-        assertEquals(4, userService.findAll().size());
+        assertEquals(4, userService.findAll(Pageable.unpaged()).size());
     }
 
     @Test
@@ -106,10 +94,16 @@ public class UserServiceImplUnitTest
     }
 
     @Test
+    public void AB_findByNameContaining()
+    {
+        assertEquals(4, userService.findByNameContaining("a", Pageable.unpaged()).size());
+    }
+
+    @Test
     public void F_save()
     {
         ArrayList<UserRoles> datas = new ArrayList<>();
-        User u2 = new User("tiger", "ILuvMath!", datas);
+        User u2 = new User("tiger", "ILuvMath!", "tiger@school.lambda", datas);
         u2.getUseremails()
           .add(new Useremail(u2, "tiger@tiger.local"));
 
@@ -126,7 +120,7 @@ public class UserServiceImplUnitTest
     public void FA_saveResourceFound()
     {
         ArrayList<UserRoles> datas = new ArrayList<>();
-        User u2 = new User("cinnamon", "ILuvMath!", datas);
+        User u2 = new User("cinnamon", "ILuvMath!", "cinnamon@school.lambda", datas);
         u2.getUseremails()
           .add(new Useremail(u2, "tiger@tiger.local"));
 
@@ -145,7 +139,7 @@ public class UserServiceImplUnitTest
     public void G_update()
     {
         ArrayList<UserRoles> datas = new ArrayList<>();
-        User u2 = new User("cinnamon", "password", datas);
+        User u2 = new User("cinnamon", "password", "cinnamon@school.lambda", datas);
         u2.getUseremails()
           .add(new Useremail(u2, "cinnamon@mymail.thump"));
         u2.getUseremails()
@@ -174,7 +168,7 @@ public class UserServiceImplUnitTest
         Role r2 = new Role("user");
 
         ArrayList<UserRoles> datas = new ArrayList<>();
-        User u2 = new User("cinnamon", "password", datas);
+        User u2 = new User("cinnamon", "password", "cinnamon@school.lambda", datas);
         datas.add(new UserRoles(u2, r2));
         u2.getUseremails()
           .add(new Useremail(u2, "cinnamon@mymail.thump"));
@@ -204,7 +198,7 @@ public class UserServiceImplUnitTest
         Role r2 = new Role("user");
 
         ArrayList<UserRoles> datas = new ArrayList<>();
-        User u2 = new User("cinnamon", "password", datas);
+        User u2 = new User("cinnamon", "password", "cinnamon@school.lambda", datas);
         u2.getUseremails()
           .add(new Useremail(u2, "cinnamon@mymail.thump"));
         u2.getUseremails()

@@ -1,5 +1,6 @@
 package com.lambdaschool.starthere.controllers;
 
+import com.lambdaschool.starthere.logging.Loggable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import javax.servlet.http.HttpServletRequest;
 
+@Loggable
 @Controller
 public class LogoutController
 {
@@ -20,7 +22,7 @@ public class LogoutController
     @Autowired
     private TokenStore tokenStore;
 
-    @RequestMapping(value = "/oauth/revoke-token",
+    @RequestMapping(value = {"/oauth/revoke-token", "/logout"},
                     method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
     public void logout(HttpServletRequest request)
@@ -31,7 +33,8 @@ public class LogoutController
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null)
         {
-            String tokenValue = authHeader.replace("Bearer", "")
+            String tokenValue = authHeader.replace("Bearer",
+                                                   "")
                                           .trim();
             OAuth2AccessToken accessToken = tokenStore.readAccessToken(tokenValue);
             tokenStore.removeAccessToken(accessToken);

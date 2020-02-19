@@ -24,7 +24,8 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter
     @Override
     public void configure(HttpSecurity http) throws Exception
     {
-        // http.anonymous().disable();
+        // http.anonymous().disable(); // since we allow anonymous users to access Swagger
+        // and create a user account
         http.authorizeRequests()
             .antMatchers("/",
                          "/h2-console/**",
@@ -33,21 +34,27 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter
                          "/swagger-ui.html",
                          "/v2/api-docs",
                          "/webjars/**",
-                         "/createnewuser").permitAll()
-            .antMatchers("/users/***", "/oauth/revoke-token").authenticated()
-            //                .antMatchers("/books", "/authors").hasAnyRole("ADMIN", "USER", "DATA") - application data
-            //                .antMatchers("/data/**").hasAnyRole("ADMIN", "DATA")
-            // .antMatchers("/users/***").hasAnyRole("USER")
-            .antMatchers("/roles/**", "/actuator/**").hasAnyRole("ADMIN")
+                         "/createnewuser")
+            .permitAll()
+            .antMatchers("/users/**",
+                         "/useremails/**",
+                         "/oauth/revoke-token",
+                         "/logout")
+            .authenticated()
+            .antMatchers("/roles/**",
+                         "/actuator/**")
+            .hasAnyRole("ADMIN")
             .and()
             .exceptionHandling()
             .accessDeniedHandler(new OAuth2AccessDeniedHandler());
 
-        // http.requiresChannel().anyRequest().requiresSecure();
+        // http.requiresChannel().anyRequest().requiresSecure(); // required for https
         http.csrf()
             .disable();
         http.headers()
             .frameOptions()
+            .disable();
+        http.logout()
             .disable();
     }
 }

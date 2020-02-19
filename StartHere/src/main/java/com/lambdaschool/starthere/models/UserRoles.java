@@ -1,13 +1,16 @@
 package com.lambdaschool.starthere.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.lambdaschool.starthere.logging.Loggable;
 
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Objects;
 
+@Loggable
 @Entity
-@Table(name = "userroles")
+@Table(name = "userroles",
+       uniqueConstraints = {@UniqueConstraint(columnNames = {"userid", "roleid"})})
 public class UserRoles extends Auditable implements Serializable
 {
     @Id
@@ -26,7 +29,8 @@ public class UserRoles extends Auditable implements Serializable
     {
     }
 
-    public UserRoles(User user, Role role)
+    public UserRoles(User user,
+                     Role role)
     {
         this.user = user;
         this.role = role;
@@ -70,7 +74,8 @@ public class UserRoles extends Auditable implements Serializable
     @Override
     public int hashCode()
     {
-        return Objects.hash(getUser(), getRole());
+        return Objects.hash(getUser(),
+                            getRole());
     }
 
     @Override
